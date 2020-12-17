@@ -39,14 +39,37 @@ class Dom {
 
     return this;
   }
+
+  get data() {
+    return this.$el.dataset;
+  }
+
+  closest(selector) {
+    return $(this.$el.closest(selector));
+  }
+
+  getCoords() {
+    return this.$el.getBoundingClientRect();
+  }
+
+  findAll(selector) {
+    return this.$el.querySelectorAll(selector);
+  }
+
+  css(styles = {}) {
+    Object.keys(styles).forEach((item) => {
+      this.$el.style[item] = styles[item];
+    });
+    return this;
+  }
 }
 
 export function $(selector) {
   return new Dom(selector);
 }
 
-$.create = (tagNaame, classes = "") => {
-  const el = document.createElement(tagNaame);
+$.create = (tagName, classes = "") => {
+  const el = document.createElement(tagName);
   if (classes) {
     el.classList.add(classes);
   }
