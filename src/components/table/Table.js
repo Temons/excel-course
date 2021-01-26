@@ -1,16 +1,18 @@
 import { ExcelComponent } from "../../core/ExcelComponent";
 import { createTable } from "./table.template";
 import { resizeHandler } from "./table.resize";
-import { isCell, shouldResize } from "./table.functions";
-import { matrix, TableSelection } from "./TableSelection";
+import { isCell, nextSelector, matrix, shouldResize } from "./table.functions";
+import { TableSelection } from "./TableSelection";
 import { $ } from "../../core/dom";
 
 export class Table extends ExcelComponent {
   static className = "excel__table";
 
-  constructor($root) {
+  constructor($root, options) {
     super($root, {
-      listeners: ["mousedown", "keydown"],
+      name: "Table",
+      listeners: ["mousedown", "keydown", "input"],
+      ...options,
     });
   }
 
@@ -25,8 +27,20 @@ export class Table extends ExcelComponent {
   init() {
     super.init();
 
-    const $cell = this.$root.find('[data-id="0:0"]');
+    this.selectCell(this.$root.find('[data-id="0:0"]'));
+
+    this.$on("formula:input", (text) => {
+      this.selection.current.text(text);
+    });
+
+    this.$on("formula:done", () => {
+      this.selection.current.focus();
+    });
+  }
+
+  selectCell($cell) {
     this.selection.select($cell);
+    this.$emit("table:select", $cell);
   }
 
   onMousedown(event) {
@@ -47,27 +61,26 @@ export class Table extends ExcelComponent {
   }
 
   onKeydown(event) {
-    switch (event.keyCode) {
-      case 9:
-        this.selection.tabClicked($(event.target));
-        break;
-      case 13:
-        this.selection.enterClicked($(event.target), this.$root);
-        break;
-      case 37:
-        this.selection.leftClicked($(event.target), this.$root);
-        break;
-      case 38:
-        this.selection.topClicked($(event.target), this.$root);
-        break;
-      case 39:
-        this.selection.rightClicked($(event.target), this.$root);
-        break;
-      case 40:
-        this.selection.bottomClicked($(event.target), this.$root);
-        break;
-      default:
-        console.log("default");
+    const keys = [
+      "Enter",
+      "Tab",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowDown",
+      "ArrowUp",
+    ];
+
+    const { key } = event;
+
+    if (keys.includes(key) && !event.shiftKey) {
+      event.preventDefault();
+      const id = this.selection.current.id(true);
+      const $next = this.$root.find(nextSelector(key, id));
+      this.selectCell($next);
     }
+  }
+
+  onInput(event) {
+    this.$emit("table:input", $(event.target));
   }
 }
