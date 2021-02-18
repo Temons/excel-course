@@ -1,46 +1,75 @@
+import { defaultStyles } from "../../constants";
+import { parse } from "../../core/parse";
+import { toInlineStyles } from "../../core/utils";
+
 const CODES = {
   A: 65,
   Z: 90,
 };
 
-// function toCell(row, col) {
-//   return `
-//         <div class="cell" contenteditable data-col=${col}></div>
-//     `;
-// }
+const DEFAULT_WIDTH = 120;
+const DEFAULT_HEIGHT = 24;
 
-function toCell(row) {
-  return function a(_, col) {
+function getWidth(state, index) {
+  return (state[index] || DEFAULT_WIDTH) + "px";
+}
+
+function getHeight(state = {}, index) {
+  return (state[index] || DEFAULT_HEIGHT) + "px";
+}
+
+function toCell(state, row) {
+  return function (_, col) {
+    const width = getWidth(state.colState, col);
+    const id = `${row}:${col}`;
+    const data = state.dataState[id];
+    const styles = toInlineStyles({
+      ...defaultStyles,
+      ...state.stylesState[id],
+    });
     return `
       <div 
         class="cell"
         contenteditable
         data-col=${col}
         data-type="cell"
-        data-id="${row}:${col}"
-      ></div>
+        data-value="${data || ""}"
+        data-id="${id}"
+        style="${styles}; width:${width}"
+      >${parse(data) || ""}</div>
 `;
   };
 }
 
-function toColumn(col, index) {
+function toColumn({ col, index, width }) {
   return `
-        <div class="column" data-type="resizable" data-col=${index}>
+        <div 
+          class="column"
+          data-type="resizable"
+          data-col=${index}
+          style="width: ${width}"
+        >
           ${col}
           <div class="col-resize" data-resize="col"></div>  
         </div>
     `;
 }
 
-function createRow(info = "", content = "") {
-  const resizer = info
+function createRow(index = "", content = "", state = {}) {
+  const resizer = index
     ? '<div class="row-resize" data-resize="row"></div>'
     : "";
-  const dataRow = info ? `data-row = ${info}` : null;
+  const dataRow = index ? `data-row = ${index}` : null;
+  const height = getHeight(state, index);
   return `
-    <div class="row" data-type="resizable" ${dataRow}>
+    <div 
+      class="row"
+      data-type="resizable"
+      ${dataRow}
+      style="height: ${height}"
+    >
         <div class="row-info">
-          ${info}
+          ${index}
           ${resizer}
         </div>
         <div class="row-data">${content}</div>
@@ -52,21 +81,39 @@ function toChar(_, idx) {
   return String.fromCharCode(CODES.A + idx);
 }
 
-export function createTable(rowsCount = 15) {
+function withWitdhFrom(state) {
+  return function (col, index) {
+    return {
+      col,
+      index,
+      width: getWidth(state.colState, index),
+    };
+  };
+}
+
+export function createTable(rowsCount = 15, state = {}) {
   const colsCount = CODES.Z - CODES.A + 1;
   const rows = [];
 
-  const cols = new Array(colsCount).fill("").map(toChar).map(toColumn).join("");
+  const cols = new Array(colsCount)
+    .fill("")
+    .map(toChar)
+    .map(withWitdhFrom(state))
+    .map(toColumn)
+    // .map((col, index) => {
+    //   const width = getWidth(state.colState, index);
+    //   return toColumn(col, index, width);
+    // })
+    .join("");
 
-  rows.push(createRow("", cols));
+  rows.push(createRow("", cols, {}));
 
   for (let row = 0; row < rowsCount; row++) {
     const emptyCols = new Array(colsCount)
       .fill("")
-      // .map((_, col) => toCell(row, col))
-      .map(toCell(row))
+      .map(toCell(state, row))
       .join("");
-    rows.push(createRow(row + 1, emptyCols));
+    rows.push(createRow(row + 1, emptyCols, state.rowState));
   }
   return rows.join("");
 }
