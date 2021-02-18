@@ -1,4 +1,6 @@
-import { storage } from "../../core/utils";
+import { defaultStyles } from "../../constants";
+import { parse } from "../../core/parse";
+import { toInlineStyles } from "../../core/utils";
 
 const CODES = {
   A: 65,
@@ -17,21 +19,24 @@ function getHeight(state = {}, index) {
 }
 
 function toCell(state, row) {
-  console.log("state", state);
-
   return function (_, col) {
     const width = getWidth(state.colState, col);
     const id = `${row}:${col}`;
     const data = state.dataState[id];
+    const styles = toInlineStyles({
+      ...defaultStyles,
+      ...state.stylesState[id],
+    });
     return `
       <div 
         class="cell"
         contenteditable
         data-col=${col}
         data-type="cell"
+        data-value="${data || ""}"
         data-id="${id}"
-        style="width:${width}"
-      >${data || ""}</div>
+        style="${styles}; width:${width}"
+      >${parse(data) || ""}</div>
 `;
   };
 }
@@ -89,10 +94,6 @@ function withWitdhFrom(state) {
 export function createTable(rowsCount = 15, state = {}) {
   const colsCount = CODES.Z - CODES.A + 1;
   const rows = [];
-
-  const columns = storage("excel-state");
-
-  console.log("columns", columns);
 
   const cols = new Array(colsCount)
     .fill("")

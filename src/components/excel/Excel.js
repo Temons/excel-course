@@ -34,10 +34,12 @@ export class Excel {
   render() {
     this.$el.append(this.getRoot());
 
+    this.subscriber.subscribeComponents(this.components);
     this.components.forEach((component) => component.init());
   }
 
   destroy() {
+    this.subscriber.unsubscribeFromStore();
     this.components.forEach((component) => component.destroy());
   }
 }

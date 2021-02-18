@@ -16,6 +16,10 @@
     color: $color;
   }
 
+  &.italic {
+    font-style: italic;
+  }
+
   &:hover {
     background: #eee;
     cursor: pointer;
